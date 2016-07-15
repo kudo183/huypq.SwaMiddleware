@@ -16,6 +16,8 @@ namespace huypq.SwaMiddleware
         private static JsonSerializer _jsonSerializer = JsonSerializer.Create();
         private static bool _isUseTokenAuthentication;
         private static IApplicationBuilder _app;
+        private static List<string> _allowAnonymous;
+
         /// <summary>
         /// Extension methods for <see cref="IApplicationBuilder"/> to add SWA to the request execution pipeline.
         /// Dependence services: Routing
@@ -27,7 +29,7 @@ namespace huypq.SwaMiddleware
         /// </param>
         /// <returns></returns>
         public static IApplicationBuilder UseSwa(
-            this IApplicationBuilder app, string applicationNamespace, bool isUseTokenAuthentication = true)
+            this IApplicationBuilder app, string applicationNamespace, bool isUseTokenAuthentication, List<string> allowAnonymous)
         {
             if (app == null)
             {
@@ -44,6 +46,7 @@ namespace huypq.SwaMiddleware
                 entryAssembly.FullName.Split(',')[0], entryAssembly.FullName);
             _isUseTokenAuthentication = isUseTokenAuthentication;
             _app = app;
+            _allowAnonymous = allowAnonymous;
 
             var routeBuilder = new RouteBuilder(app, new RouteHandler(SwaRouteHandler));
 
@@ -73,6 +76,10 @@ namespace huypq.SwaMiddleware
                 {
                     base64Token = (ControllerInvoker(controller, action, parameter, null) as SwaTokenModel).ToBase64();
                     result = protector.Protect(base64Token);
+                }
+                else if (_allowAnonymous.Contains(controller + "." + action))
+                {
+                    result = ControllerInvoker(controller, action, parameter, null);
                 }
                 else
                 {
@@ -133,6 +140,7 @@ namespace huypq.SwaMiddleware
                 string.Format(_controllerNamespacePattern, controllerName), true, true);
             SwaController controller = Activator.CreateInstance(controllerType) as SwaController;
             controller.TokenModel = token;
+            controller.App = _app;
             result = controller.ActionInvoker(actionName, parameter);
 
             return result;

@@ -30,7 +30,8 @@ namespace SwaMiddlewareDemo
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseSwa("SwaMiddlewareDemo");
+            app.UseSwa("SwaMiddlewareDemo",
+                true, new System.Collections.Generic.List<string>(new string[] { "user.register" }));
         }
     }
 }

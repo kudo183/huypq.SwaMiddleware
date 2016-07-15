@@ -14,6 +14,9 @@ namespace SwaMiddlewareDemo.Controllers
                 case "token":
                     result = Token(parameter["user"].ToString(), parameter["password"].ToString());
                     break;
+                case "register":
+                    result = Register(parameter["user"].ToString(), parameter["password"].ToString());
+                    break;
                 default:
                     break;
             }
@@ -24,6 +27,11 @@ namespace SwaMiddlewareDemo.Controllers
         public SwaTokenModel Token(string user, string pass)
         {
             return new SwaTokenModel() { User = user };
+        }
+
+        public string Register(string user, string pass)
+        {
+            return string.Format("{0} - {1}", user, pass);
         }
     }
 }
