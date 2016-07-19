@@ -18,7 +18,7 @@
     "SwaMiddlewareDemo": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "http://localhost:5000/user/token",
+      "launchUrl": "http://localhost:5000/test/getimage",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

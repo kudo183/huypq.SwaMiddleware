@@ -5,9 +5,9 @@ namespace SwaMiddlewareDemo.Controllers
 {
     public class TestController : SwaController
     {
-        public override object ActionInvoker(string actionName, Dictionary<string, object> parameter)
+        public override SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter)
         {
-            object result = null;
+            SwaActionResult result = null;
 
             switch (actionName)
             {
@@ -23,6 +23,12 @@ namespace SwaMiddlewareDemo.Controllers
                             break;
                     }
                     break;
+                case "getimage":
+                    result = GetImage();
+                    break;
+                case "getfile":
+                    result = GetFile();
+                    break;
                 default:
                     break;
             }
@@ -30,15 +36,32 @@ namespace SwaMiddlewareDemo.Controllers
             return result;
         }
 
-        public IEnumerable<string> Get()
+        public SwaActionResult Get()
         {
-            return new string[] { "value1", "value2", TokenModel.User, TokenModel.CreateTime.Ticks.ToString() };
+            return CreateJsonResult(
+                new string[] { "value1", "value2", TokenModel.User, TokenModel.CreateTime.Ticks.ToString() });
         }
 
         // GET api/values/5
-        public string Get(int id)
+        public SwaActionResult Get(int id)
         {
-            return "value";
+            return CreateJsonResult("value");
+        }
+
+        public SwaActionResult GetImage()
+        {
+            var fileName = "image.jpg";
+            var path = System.IO.Path.GetFullPath(fileName);
+            var stream = new System.IO.FileStream(path, System.IO.FileMode.Open);
+            return CreateStreamResult(stream, MimeMapping.GetMimeType(fileName));
+        }
+
+        public SwaActionResult GetFile()
+        {
+            var fileName = "test.txt";
+            System.IO.MemoryStream stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("this is a text file"));
+            
+            return CreateFileResult(stream, fileName);
         }
     }
 }

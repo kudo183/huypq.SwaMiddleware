@@ -29,9 +29,18 @@ namespace SwaMiddlewareDemo
             {
                 app.UseDeveloperExceptionPage();
             }
-
-            app.UseSwa("SwaMiddlewareDemo",
-                true, new System.Collections.Generic.List<string>(new string[] { "user.register" }));
+            
+            app.UseSwa("SwaMiddlewareDemo", new SwaOptions()
+            {
+                IsUseTokenAuthentication = true,
+                TokenEnpoint = "user.token",
+                AllowAnonymousActions = new System.Collections.Generic.List<string>(new string[]
+                {
+                    "user.register",
+                    //"test.getimage",
+                    "test.getfile",
+                })
+            });
         }
     }
 }

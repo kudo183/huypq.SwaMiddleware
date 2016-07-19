@@ -5,9 +5,9 @@ namespace SwaMiddlewareDemo.Controllers
 {
     public class UserController : SwaController
     {
-        public override object ActionInvoker(string actionName, Dictionary<string, object> parameter)
+        public override SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter)
         {
-            object result = null;
+            SwaActionResult result = null;
 
             switch (actionName)
             {
@@ -24,14 +24,14 @@ namespace SwaMiddlewareDemo.Controllers
             return result;
         }
 
-        public SwaTokenModel Token(string user, string pass)
+        public SwaActionResult Token(string user, string pass)
         {
-            return new SwaTokenModel() { User = user };
+            return CreateJsonResult(new SwaTokenModel() { User = user });
         }
 
-        public string Register(string user, string pass)
+        public SwaActionResult Register(string user, string pass)
         {
-            return string.Format("{0} - {1}", user, pass);
+            return CreateJsonResult(string.Format("{0} - {1}", user, pass));
         }
     }
 }

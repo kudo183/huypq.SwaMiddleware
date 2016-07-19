@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using System.Reflection;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using System.IO;
+using Microsoft.Net.Http.Headers;
 
 namespace huypq.SwaMiddleware
 {
@@ -14,9 +16,8 @@ namespace huypq.SwaMiddleware
     {
         private static string _controllerNamespacePattern;
         private static JsonSerializer _jsonSerializer = JsonSerializer.Create();
-        private static bool _isUseTokenAuthentication;
+        private static SwaOptions _options;
         private static IApplicationBuilder _app;
-        private static List<string> _allowAnonymous;
 
         /// <summary>
         /// Extension methods for <see cref="IApplicationBuilder"/> to add SWA to the request execution pipeline.
@@ -29,7 +30,7 @@ namespace huypq.SwaMiddleware
         /// </param>
         /// <returns></returns>
         public static IApplicationBuilder UseSwa(
-            this IApplicationBuilder app, string applicationNamespace, bool isUseTokenAuthentication, List<string> allowAnonymous)
+            this IApplicationBuilder app, string applicationNamespace, SwaOptions options)
         {
             if (app == null)
             {
@@ -44,9 +45,8 @@ namespace huypq.SwaMiddleware
 
             _controllerNamespacePattern = string.Format("{0}.Controllers.{{0}}Controller, {1}",
                 entryAssembly.FullName.Split(',')[0], entryAssembly.FullName);
-            _isUseTokenAuthentication = isUseTokenAuthentication;
+            _options = options;
             _app = app;
-            _allowAnonymous = allowAnonymous;
 
             var routeBuilder = new RouteBuilder(app, new RouteHandler(SwaRouteHandler));
 
@@ -57,7 +57,7 @@ namespace huypq.SwaMiddleware
             return app.UseRouter(routeBuilder.Build());
         }
 
-        private static Task SwaRouteHandler(HttpContext context)
+        private static async Task SwaRouteHandler(HttpContext context)
         {
             var routeValues = context.GetRouteData().Values;
             var controller = routeValues["controller"]?.ToString().ToLower();
@@ -65,45 +65,15 @@ namespace huypq.SwaMiddleware
 
             var parameter = GetRequestParameter(context.Request);
 
-            object result = null;
+            SwaActionResult result = RequestExecutor(controller, action, parameter, context.Request);
 
-            if (_isUseTokenAuthentication)
+            if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var protector = _app.ApplicationServices.GetDataProtector("token");
-                string base64Token = "";
-
-                if (controller == "user" && action == "token")
-                {
-                    base64Token = (ControllerInvoker(controller, action, parameter, null) as SwaTokenModel).ToBase64();
-                    result = protector.Protect(base64Token);
-                }
-                else if (_allowAnonymous.Contains(controller + "." + action))
-                {
-                    result = ControllerInvoker(controller, action, parameter, null);
-                }
-                else
-                {
-                    try
-                    {
-                        base64Token = protector.Unprotect(context.Request.Headers["token"][0]);
-                        result = ControllerInvoker(
-                            controller, action, parameter, SwaTokenModel.FromBase64(base64Token));
-                    }
-                    catch (Exception ex)
-                    {
-                        context.Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
-                        return Task.FromResult(0);
-                    }
-                }
-            }
-            else
-            {
-                result = ControllerInvoker(controller, action, parameter, null);
+                context.Response.StatusCode = (int)result.StatusCode;
+                return;
             }
 
-            context.Response.ContentType = "application/json";
-
-            return JsonWrite(context.Response.Body, result);
+            await WriteResponse(context.Response, result);
         }
 
         private static Dictionary<string, object> GetRequestParameter(HttpRequest request)
@@ -131,28 +101,102 @@ namespace huypq.SwaMiddleware
             return parameter;
         }
 
-        private static object ControllerInvoker(
-            string controllerName, string actionName, Dictionary<string, object> parameter, SwaTokenModel token)
+        private static SwaActionResult RequestExecutor(
+            string controller, string action, Dictionary<string, object> parameter, HttpRequest request)
         {
-            object result = null;
+            SwaActionResult result = null;
 
-            var controllerType = Type.GetType(
-                string.Format(_controllerNamespacePattern, controllerName), true, true);
-            SwaController controller = Activator.CreateInstance(controllerType) as SwaController;
-            controller.TokenModel = token;
-            controller.App = _app;
-            result = controller.ActionInvoker(actionName, parameter);
+            if (_options.IsUseTokenAuthentication)
+            {
+                var protector = _app.ApplicationServices.GetDataProtector("token");
+                string base64PlainToken = "";
+
+                if (_options.TokenEnpoint == (controller + "." + action))
+                {
+                    result = ControllerInvoker(controller, action, parameter, null);
+                    base64PlainToken = (result.ResultValue as SwaTokenModel).ToBase64();
+                    result.ResultValue = protector.Protect(base64PlainToken);
+                }
+                else if (_options.AllowAnonymousActions.Contains(controller + "." + action))
+                {
+                    result = ControllerInvoker(controller, action, parameter, null);
+                }
+                else
+                {
+                    try
+                    {
+                        base64PlainToken = protector.Unprotect(request.Headers["token"][0]);
+                        result = ControllerInvoker(
+                            controller, action, parameter, SwaTokenModel.FromBase64(base64PlainToken));
+                    }
+                    catch (Exception ex)
+                    {
+                        result = new SwaActionResult
+                        {
+                            StatusCode = System.Net.HttpStatusCode.Unauthorized
+                        };
+                    }
+                }
+            }
+            else
+            {
+                result = ControllerInvoker(controller, action, parameter, null);
+            }
 
             return result;
         }
 
-        private static async Task JsonWrite(System.IO.Stream body, object value)
+        private static SwaActionResult ControllerInvoker(
+            string controllerName, string actionName, Dictionary<string, object> parameter, SwaTokenModel token)
         {
-            using (var writer = new System.IO.StreamWriter(body))
-            using (var jsonWriter = new JsonTextWriter(writer))
+            var controllerType = Type.GetType(
+                string.Format(_controllerNamespacePattern, controllerName), true, true);
+
+            SwaController controller = Activator.CreateInstance(controllerType) as SwaController;
+            controller.TokenModel = token;
+            controller.App = _app;
+            controller.Result = new SwaActionResult();
+
+            return controller.ActionInvoker(actionName, parameter);
+        }
+
+        private static async Task WriteResponse(HttpResponse response, SwaActionResult result)
+        {
+            if (result.ResultValue == null)
             {
-                _jsonSerializer.Serialize(jsonWriter, value);
-                await writer.FlushAsync();
+                response.StatusCode = (int)result.StatusCode;
+                return;
+            }
+
+            response.StatusCode = (int)result.StatusCode;
+            switch (result.ResultType)
+            {
+                case SwaActionResult.ActionResultType.Json:
+                    response.ContentType = result.ContentType;
+                    using (var writer = new StreamWriter(response.Body))
+                    using (var jsonWriter = new JsonTextWriter(writer))
+                    {
+                        _jsonSerializer.Serialize(jsonWriter, result.ResultValue);
+                        await writer.FlushAsync();
+                    }
+                    break;
+                case SwaActionResult.ActionResultType.Status:
+                    break;
+                case SwaActionResult.ActionResultType.Stream:
+                    using (var stream = result.ResultValue as Stream)
+                    {
+                        await stream.CopyToAsync(response.Body);
+                    }
+                    break;
+                case SwaActionResult.ActionResultType.File:
+                    var contentDisposition = new ContentDispositionHeaderValue("attachment");
+                    contentDisposition.SetHttpFileName(result.FileName);
+                    response.Headers[HeaderNames.ContentDisposition] = contentDisposition.ToString();
+                    using (var stream = result.ResultValue as Stream)
+                    {
+                        await stream.CopyToAsync(response.Body);
+                    }
+                    break;
             }
         }
     }
