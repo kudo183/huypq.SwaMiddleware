@@ -59,21 +59,29 @@ namespace huypq.SwaMiddleware
 
         private static async Task SwaRouteHandler(HttpContext context)
         {
-            var routeValues = context.GetRouteData().Values;
-            var controller = routeValues["controller"]?.ToString().ToLower();
-            var action = routeValues["action"]?.ToString().ToLower();
-
-            var parameter = GetRequestParameter(context.Request);
-
-            SwaActionResult result = RequestExecutor(controller, action, parameter, context.Request);
-
-            if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            try
             {
-                context.Response.StatusCode = (int)result.StatusCode;
+                var routeValues = context.GetRouteData().Values;
+                var controller = routeValues["controller"]?.ToString().ToLower();
+                var action = routeValues["action"]?.ToString().ToLower();
+
+                var parameter = GetRequestParameter(context.Request);
+
+                SwaActionResult result = RequestExecutor(controller, action, parameter, context.Request);
+
+                if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    context.Response.StatusCode = (int)result.StatusCode;
+                    return;
+                }
+
+                await WriteResponse(context.Response, result);
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = (int)System.Net.HttpStatusCode.InternalServerError;
                 return;
             }
-
-            await WriteResponse(context.Response, result);
         }
 
         private static Dictionary<string, object> GetRequestParameter(HttpRequest request)
@@ -114,8 +122,11 @@ namespace huypq.SwaMiddleware
                 if (_options.TokenEnpoint == (controller + "." + action))
                 {
                     result = ControllerInvoker(controller, action, parameter, null);
-                    base64PlainToken = (result.ResultValue as SwaTokenModel).ToBase64();
-                    result.ResultValue = protector.Protect(base64PlainToken);
+                    if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        base64PlainToken = (result.ResultValue as SwaTokenModel).ToBase64();
+                        result.ResultValue = protector.Protect(base64PlainToken);
+                    }
                 }
                 else if (_options.AllowAnonymousActions.Contains(controller + "." + action))
                 {
