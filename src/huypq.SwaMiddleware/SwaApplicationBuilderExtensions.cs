@@ -15,7 +15,7 @@ namespace huypq.SwaMiddleware
     public static class SwaApplicationBuilderExtensions
     {
         private static string _controllerNamespacePattern;
-        private static JsonSerializer _jsonSerializer = JsonSerializer.Create();
+        private static JsonSerializer _jsonSerializer;
         private static SwaOptions _options;
         private static IApplicationBuilder _app;
 
@@ -46,6 +46,15 @@ namespace huypq.SwaMiddleware
             _controllerNamespacePattern = string.Format("{0}.Controllers.{{0}}Controller, {1}",
                 entryAssembly.FullName.Split(',')[0], entryAssembly.FullName);
             _options = options;
+
+            if (_options.JsonSerializer == null)
+            {
+                _jsonSerializer = JsonSerializer.Create();
+            }
+            else
+            {
+                _jsonSerializer = _options.JsonSerializer;
+            }
             _app = app;
 
             var routeBuilder = new RouteBuilder(app, new RouteHandler(SwaRouteHandler));

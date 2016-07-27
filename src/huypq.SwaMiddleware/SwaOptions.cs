@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace huypq.SwaMiddleware
 {
@@ -19,5 +20,7 @@ namespace huypq.SwaMiddleware
         /// Specify list of action which allow anonymous user
         /// </summary>
         public List<string> AllowAnonymousActions { get; set; }
+
+        public JsonSerializer JsonSerializer { get; set; }
     }
 }
