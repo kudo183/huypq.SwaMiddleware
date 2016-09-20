@@ -37,8 +37,9 @@ namespace SwaMiddlewareDemo
                 AllowAnonymousActions = new System.Collections.Generic.List<string>(new string[]
                 {
                     "user.register",
-                    //"test.getimage",
+                    "test.getimage",
                     "test.getfile",
+                    "test.get",
                 })
             });
         }
