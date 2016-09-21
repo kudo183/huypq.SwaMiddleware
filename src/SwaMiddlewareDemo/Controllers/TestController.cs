@@ -29,6 +29,9 @@ namespace SwaMiddlewareDemo.Controllers
                 case "getfile":
                     result = GetFile();
                     break;
+                case "getbytes":
+                    result = GetBytes();
+                    break;
                 default:
                     break;
             }
@@ -60,8 +63,37 @@ namespace SwaMiddlewareDemo.Controllers
         {
             var fileName = "test.txt";
             System.IO.MemoryStream stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("this is a text file"));
-            
+
             return CreateFileResult(stream, fileName);
         }
+
+        public SwaActionResult GetBytes()
+        {
+            var result = new List<TestData>();
+            result.Add(new TestData()
+            {
+                Name = "n1",
+                ContentOfThisObject = "content1",
+                Number = 123,
+                ListInt = new List<int> { 1, 2, 3, 1, 2, 3 },
+                Date = System.DateTime.Now
+            });
+            return CreateObjectResult(result);
+        }
+    }
+
+    [ProtoBuf.ProtoContract]
+    public class TestData
+    {
+        [ProtoBuf.ProtoMember(1)]
+        public string Name { get; set; }
+        [ProtoBuf.ProtoMember(2)]
+        public string ContentOfThisObject { get; set; }
+        [ProtoBuf.ProtoMember(3)]
+        public int Number { get; set; }
+        [ProtoBuf.ProtoMember(4)]
+        public List<int> ListInt { get; set; }
+        [ProtoBuf.ProtoMember(5)]
+        public System.DateTime Date { get; set; }
     }
 }

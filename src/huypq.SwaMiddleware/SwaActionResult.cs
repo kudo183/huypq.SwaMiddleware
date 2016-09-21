@@ -7,7 +7,8 @@
             Json = 0,
             Stream = 1,
             Status = 2,
-            File
+            File = 3,
+            Object = 4
         }
 
         /// <summary>

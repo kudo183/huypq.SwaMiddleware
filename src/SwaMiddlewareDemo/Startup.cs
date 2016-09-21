@@ -40,6 +40,7 @@ namespace SwaMiddlewareDemo
                     "test.getimage",
                     "test.getfile",
                     "test.get",
+                    "test.getbytes",
                 })
             });
         }

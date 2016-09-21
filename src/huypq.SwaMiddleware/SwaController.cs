@@ -28,7 +28,12 @@ namespace huypq.SwaMiddleware
         /// <param name="parameter"></param>
         /// <returns></returns>
         public abstract SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter);
-        
+
+        /// <summary>
+        /// response body is json text
+        /// </summary>
+        /// <param name="resultValue"></param>
+        /// <returns></returns>
         protected SwaActionResult CreateJsonResult(
             object resultValue)
         {
@@ -39,6 +44,12 @@ namespace huypq.SwaMiddleware
             return Result;
         }
 
+        /// <summary>
+        /// response body is binary stream
+        /// </summary>
+        /// <param name="resultValue"></param>
+        /// <param name="mimeType"></param>
+        /// <returns></returns>
         protected SwaActionResult CreateStreamResult(
             Stream resultValue,
             string mimeType)
@@ -50,6 +61,11 @@ namespace huypq.SwaMiddleware
             return Result;
         }
 
+        /// <summary>
+        /// response body is empty
+        /// </summary>
+        /// <param name="statusCode"></param>
+        /// <returns></returns>
         protected SwaActionResult CreateStatusResult(
             System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
         {
@@ -59,6 +75,12 @@ namespace huypq.SwaMiddleware
             return Result;
         }
 
+        /// <summary>
+        /// response body is binary stream
+        /// </summary>
+        /// <param name="resultValue"></param>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         protected SwaActionResult CreateFileResult(
             Stream resultValue,
             string fileName)
@@ -70,5 +92,22 @@ namespace huypq.SwaMiddleware
             Result.StatusCode = System.Net.HttpStatusCode.OK;
             return Result;
         }
+
+        /// <summary>
+        /// response type is chosen by client request Headers["response"]:
+        ///     "json" -> json text
+        ///     "protobuf" -> protobuf binary
+        /// </summary>
+        /// <param name="resultValue"></param>
+        /// <returns></returns>
+        protected SwaActionResult CreateObjectResult(
+            object resultValue)
+        {
+            Result.ResultType = SwaActionResult.ActionResultType.Object;
+            Result.ResultValue = resultValue;
+            Result.StatusCode = System.Net.HttpStatusCode.OK;
+            return Result;
+        }
+
     }
 }

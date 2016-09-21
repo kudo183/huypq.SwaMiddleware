@@ -84,7 +84,13 @@ namespace huypq.SwaMiddleware
                     return;
                 }
 
-                await WriteResponse(context.Response, result);
+                var responseType = "json";
+                if (context.Request.Headers["response"].Count == 1)
+                {
+                    responseType = context.Request.Headers["response"][0];
+                }
+
+                await WriteResponse(context.Response, responseType, result);
             }
             catch (Exception ex)
             {
@@ -180,7 +186,7 @@ namespace huypq.SwaMiddleware
             return controller.ActionInvoker(actionName, parameter);
         }
 
-        private static async Task WriteResponse(HttpResponse response, SwaActionResult result)
+        private static async Task WriteResponse(HttpResponse response, string responseType, SwaActionResult result)
         {
             if (result.ResultValue == null)
             {
@@ -189,10 +195,10 @@ namespace huypq.SwaMiddleware
             }
 
             response.StatusCode = (int)result.StatusCode;
+            response.ContentType = result.ContentType;
             switch (result.ResultType)
             {
                 case SwaActionResult.ActionResultType.Json:
-                    response.ContentType = result.ContentType;
                     using (var writer = new StreamWriter(response.Body))
                     using (var jsonWriter = new JsonTextWriter(writer))
                     {
@@ -201,10 +207,12 @@ namespace huypq.SwaMiddleware
                     }
                     break;
                 case SwaActionResult.ActionResultType.Status:
+                    response.ContentLength = 0;
                     break;
                 case SwaActionResult.ActionResultType.Stream:
                     using (var stream = result.ResultValue as Stream)
                     {
+                        response.ContentLength = stream.Length;
                         await stream.CopyToAsync(response.Body);
                     }
                     break;
@@ -214,7 +222,24 @@ namespace huypq.SwaMiddleware
                     response.Headers[HeaderNames.ContentDisposition] = contentDisposition.ToString();
                     using (var stream = result.ResultValue as Stream)
                     {
+                        response.ContentLength = stream.Length;
                         await stream.CopyToAsync(response.Body);
+                    }
+                    break;
+                case SwaActionResult.ActionResultType.Object:
+                    switch (responseType)
+                    {
+                        case "protobuf":
+                            ProtoBuf.Serializer.Serialize(response.Body, result.ResultValue);
+                            break;
+                        case "json":
+                            using (var writer = new StreamWriter(response.Body))
+                            using (var jsonWriter = new JsonTextWriter(writer))
+                            {
+                                _jsonSerializer.Serialize(jsonWriter, result.ResultValue);
+                                await writer.FlushAsync();
+                            }
+                            break;
                     }
                     break;
             }
