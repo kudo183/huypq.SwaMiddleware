@@ -10,6 +10,11 @@ namespace huypq.SwaMiddleware
         public string User { get; set; }
 
         /// <summary>
+        /// Id of the logged in user
+        /// </summary>
+        public int UserId { get; set; }
+
+        /// <summary>
         /// Token craetion time (int Utc)
         /// </summary>
         public DateTime CreateTime { get; set; }
@@ -24,6 +29,7 @@ namespace huypq.SwaMiddleware
             using (var ms = new System.IO.MemoryStream())
             using (var bw = new System.IO.BinaryWriter(ms))
             {
+                bw.Write(UserId);
                 bw.Write(User);
                 bw.Write(CreateTime.ToBinary());
                 bw.Flush();
@@ -38,6 +44,7 @@ namespace huypq.SwaMiddleware
             using (var ms = new System.IO.MemoryStream(Convert.FromBase64String(str)))
             using (var br = new System.IO.BinaryReader(ms))
             {
+                result.UserId = br.ReadInt32();
                 result.User = br.ReadString();
                 result.CreateTime = DateTime.FromBinary(br.ReadInt64());
 
