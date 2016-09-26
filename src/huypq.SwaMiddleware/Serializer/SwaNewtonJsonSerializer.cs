@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
+using System.IO.Compression;
 
 namespace huypq.SwaMiddleware
 {
@@ -31,7 +32,8 @@ namespace huypq.SwaMiddleware
 
         public void Serialize(Stream output, object data)
         {
-            using (var writer = new StreamWriter(output))
+            using (var gzipStream = new GZipStream(output, CompressionLevel.Fastest))
+            using (var writer = new StreamWriter(gzipStream))
             using (var jsonWriter = new JsonTextWriter(writer))
             {
                 _jsonSerializer.Serialize(jsonWriter, data);

@@ -203,7 +203,22 @@ namespace huypq.SwaMiddleware
             switch (result.ResultType)
             {
                 case SwaActionResult.ActionResultType.Json:
+                    response.Headers["Content-Encoding"] = "gzip";
                     SwaSettings.Instance.JsonSerializer.Serialize(response.Body, result.ResultValue);
+                    break;
+                case SwaActionResult.ActionResultType.Object:
+                    switch (responseType)
+                    {
+                        case "protobuf":
+                            response.ContentType = "application/octet-stream";
+                            SwaSettings.Instance.BinarySerializer.Serialize(response.Body, result.ResultValue);
+                            break;
+                        case "json":
+                            response.Headers["Content-Encoding"] = "gzip";
+                            response.ContentType = "application/json";
+                            SwaSettings.Instance.JsonSerializer.Serialize(response.Body, result.ResultValue);
+                            break;
+                    }
                     break;
                 case SwaActionResult.ActionResultType.Status:
                     response.ContentLength = 0;
@@ -224,18 +239,7 @@ namespace huypq.SwaMiddleware
                         response.ContentLength = stream.Length;
                         await stream.CopyToAsync(response.Body);
                     }
-                    break;
-                case SwaActionResult.ActionResultType.Object:
-                    switch (responseType)
-                    {
-                        case "protobuf":
-                            SwaSettings.Instance.BinarySerializer.Serialize(response.Body, result.ResultValue);
-                            break;
-                        case "json":
-                            SwaSettings.Instance.JsonSerializer.Serialize(response.Body, result.ResultValue);
-                            break;
-                    }
-                    break;
+                    break;                
             }
         }
     }
