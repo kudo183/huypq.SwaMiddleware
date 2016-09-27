@@ -125,6 +125,8 @@ namespace huypq.SwaMiddleware
                 }
             }
 
+            parameter.Add("body", request.Body);
+
             return parameter;
         }
 
@@ -155,7 +157,8 @@ namespace huypq.SwaMiddleware
                 {
                     try
                     {
-                        base64PlainToken = protector.Unprotect(request.Headers["token"][0]);
+                        var tokenText = request.Headers["token"][0];
+                        base64PlainToken = protector.Unprotect(tokenText);
                         result = ControllerInvoker(
                             controller, action, parameter, SwaTokenModel.FromBase64(base64PlainToken));
                     }
@@ -239,7 +242,7 @@ namespace huypq.SwaMiddleware
                         response.ContentLength = stream.Length;
                         await stream.CopyToAsync(response.Body);
                     }
-                    break;                
+                    break;
             }
         }
     }
