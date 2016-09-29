@@ -4,7 +4,6 @@
     {
         public enum ActionResultType
         {
-            Json = 0,
             Stream = 1,
             Status = 2,
             File = 3,

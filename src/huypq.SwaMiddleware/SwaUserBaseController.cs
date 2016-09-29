@@ -5,8 +5,8 @@ using System.Linq;
 
 namespace huypq.SwaMiddleware
 {
-    public class SwaUserBaseController<ContextType, UserEntityType> : SwaEntityBaseController<ContextType, UserEntityType>
-        where UserEntityType : SwaUser, new ()
+    public class SwaUserBaseController<ContextType, UserEntityType, DtoType> : SwaEntityBaseController<ContextType, UserEntityType, DtoType>
+        where UserEntityType : SwaUser, new()
         where ContextType : DbContext, SwaIDbContext<UserEntityType>
     {
         public override SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter)
@@ -16,10 +16,10 @@ namespace huypq.SwaMiddleware
             switch (actionName)
             {
                 case "token":
-                    result = Token(parameter["json"].ToString());
+                    result = Token(parameter["user"].ToString(), parameter["pass"].ToString());
                     break;
                 case "register":
-                    result = Register(parameter["json"].ToString());
+                    result = Register(parameter["user"].ToString(), parameter["pass"].ToString());
                     break;
                 default:
                     break;
@@ -28,58 +28,58 @@ namespace huypq.SwaMiddleware
             return result;
         }
 
-        private class JsonParameterModel
+        public override DtoType ConvertToDto(UserEntityType dto)
         {
-            public string User { get; set; }
-            public string Password { get; set; }
-
-            public static JsonParameterModel FromJson(string json)
-            {
-                var result = SwaSettings.Instance.JsonSerializer.Deserialize<JsonParameterModel>(json);
-                return result;
-            }
+            throw new NotImplementedException();
         }
 
-        public SwaActionResult Register(string json)
+        public override UserEntityType ConvertToEntity(DtoType dto)
         {
-            var model = JsonParameterModel.FromJson(json);
+            throw new NotImplementedException();
+        }
 
-            if (DBContext.User.Any(p => p.Email == model.User))
+        public SwaActionResult Register(string user, string pass)
+        {
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
+            {
+                return CreateStatusResult(System.Net.HttpStatusCode.BadRequest);
+            }
+
+            if (DBContext.User.Any(p => p.Email == user))
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
             var hasher = new huypq.Crypto.PasswordHash();
             var entity = new UserEntityType()
             {
-                Email = model.User,
-                PasswordHash = hasher.HashedBase64String(model.Password),
+                Email = user,
+                PasswordHash = hasher.HashedBase64String(pass),
                 NgayTao = DateTime.UtcNow
             };
             DBContext.User.Add(entity);
             return SaveChanges();
         }
 
-        public SwaActionResult Token(string json)
+        public SwaActionResult Token(string user, string pass)
         {
-            var model = JsonParameterModel.FromJson(json);
-            if (model == null)
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            var entity = DBContext.User.FirstOrDefault(p => p.Email == model.User);
+            var entity = DBContext.User.FirstOrDefault(p => p.Email == user);
             if (entity == null)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            var result = huypq.Crypto.PasswordHash.VerifyHashedPassword(entity.PasswordHash, model.Password);
+            var result = huypq.Crypto.PasswordHash.VerifyHashedPassword(entity.PasswordHash, pass);
             if (result == false)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            return CreateJsonResult(new SwaTokenModel() { User = entity.Email, UserId = entity.Ma });
+            return CreateObjectResult(new SwaTokenModel() { User = entity.Email, UserId = entity.Ma });
         }
     }
 }

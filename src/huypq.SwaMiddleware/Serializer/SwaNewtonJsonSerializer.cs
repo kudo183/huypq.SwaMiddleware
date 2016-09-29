@@ -21,6 +21,16 @@ namespace huypq.SwaMiddleware
             _jsonSerializer = JsonSerializer.Create(settings);
         }
 
+        public T Deserialize<T>(Stream data)
+        {
+            using (var s = new StreamReader(data))
+            using (var sr = new StringReader(s.ReadToEnd()))
+            using (var jr = new JsonTextReader(sr))
+            {
+                return _jsonSerializer.Deserialize<T>(jr);
+            }
+        }
+
         public T Deserialize<T>(object data)
         {
             using (var sr = new StringReader(data as string))

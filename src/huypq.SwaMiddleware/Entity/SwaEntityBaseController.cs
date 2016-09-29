@@ -6,29 +6,37 @@ using System.Linq;
 
 namespace huypq.SwaMiddleware
 {
-    public abstract class SwaEntityBaseController<ContextType, EntityType> : SwaController, IDisposable
+    public abstract class SwaEntityBaseController<ContextType, EntityType, DtoType> : SwaController, IDisposable
         where ContextType : DbContext
         where EntityType : class, SwaIEntity
     {
         #region define class
-        public class PagingResult<T>
+        [ProtoBuf.ProtoContract]
+        public class PagingResultDto<T>
         {
+            [ProtoBuf.ProtoMember(1)]
             public int TotalItemCount { get; set; }
+            [ProtoBuf.ProtoMember(2)]
             public int PageIndex { get; set; }
+            [ProtoBuf.ProtoMember(3)]
             public int PageCount { get; set; }
+            [ProtoBuf.ProtoMember(4)]
             public List<T> Items { get; set; }
         }
 
         public class ChangeState
         {
-            public const string Insert = "a";
+            public const string Add = "a";
             public const string Delete = "d";
             public const string Update = "u";
         }
 
+        [ProtoBuf.ProtoContract]
         public class ChangedItem<T>
         {
+            [ProtoBuf.ProtoMember(1)]
             public string State { get; set; }
+            [ProtoBuf.ProtoMember(2)]
             public T Data { get; set; }
         }
         #endregion
@@ -52,7 +60,7 @@ namespace huypq.SwaMiddleware
                 return CreateStatusResult(System.Net.HttpStatusCode.InternalServerError);
             }
             //need return an json object, if just return status code, jquery will treat as fail.
-            return CreateJsonResult("OK");
+            return CreateObjectResult("OK");
         }
 
         public void Dispose()
@@ -63,10 +71,14 @@ namespace huypq.SwaMiddleware
             }
         }
 
-        protected PagingResult<EntityType> GetAll(IQueryable<EntityType> includedQuery)
+        protected PagingResultDto<DtoType> GetAll(IQueryable<EntityType> includedQuery)
         {
-            var result = new PagingResult<EntityType>();
-            result.Items = includedQuery.ToList();
+            var result = new PagingResultDto<DtoType>();
+            result.Items = new List<DtoType>();
+            foreach (var entity in includedQuery)
+            {
+                result.Items.Add(ConvertToDto(entity));
+            }
 
             result.TotalItemCount = result.Items.Count;
             result.PageCount = 1;
@@ -74,46 +86,71 @@ namespace huypq.SwaMiddleware
             return result;
         }
 
-        protected PagingResult<EntityType> Get(string json, IQueryable<EntityType> includedQuery)
+        protected PagingResultDto<DtoType> Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)
         {
-            var filter = SwaSettings.Instance.JsonSerializer.Deserialize<QueryExpression>(json);
-
+            QueryExpression filter = null;
+            switch (RequestObjectType)
+            {
+                case "json":
+                    filter = SwaSettings.Instance.JsonSerializer.Deserialize<QueryExpression>(requestBody);
+                    break;
+                case "protobuf":
+                    filter = SwaSettings.Instance.BinarySerializer.Deserialize<QueryExpression>(requestBody);
+                    break;
+            }
             return Get(filter, includedQuery);
         }
 
-        protected PagingResult<EntityType> Get(QueryExpression filter, IQueryable<EntityType> includedQuery)
+        protected PagingResultDto<DtoType> Get(QueryExpression filter, IQueryable<EntityType> includedQuery)
         {
             int pageCount;
 
             var query = QueryExpression.AddQueryExpression(
                 includedQuery, filter, SwaSettings.Instance.DefaultPageSize, out pageCount);
 
-            var result = new PagingResult<EntityType>
+            var result = new PagingResultDto<DtoType>
             {
                 PageIndex = filter.PageIndex,
                 PageCount = pageCount,
-                Items = query.ToList()
+                Items = new List<DtoType>()
             };
+
+            foreach (var entity in query)
+            {
+                result.Items.Add(ConvertToDto(entity));
+            }
 
             return result;
         }
 
-        protected SwaActionResult Save(string json)
+        protected SwaActionResult Save(System.IO.Stream requestBody)
         {
-            var items = SwaSettings.Instance.JsonSerializer.Deserialize<List<ChangedItem<EntityType>>>(json);
+            List<ChangedItem<DtoType>> items = null;
+            switch (RequestObjectType)
+            {
+                case "json":
+                    items = SwaSettings.Instance.JsonSerializer.Deserialize<List<ChangedItem<DtoType>>>(requestBody);
+                    break;
+                case "protobuf":
+                    items = SwaSettings.Instance.BinarySerializer.Deserialize<List<ChangedItem<DtoType>>>(requestBody);
+                    break;
+            }
 
             return Save(items);
         }
 
-        protected SwaActionResult Save(List<ChangedItem<EntityType>> items)
+        public abstract EntityType ConvertToEntity(DtoType dto);
+        public abstract DtoType ConvertToDto(EntityType entity);
+
+        protected SwaActionResult Save(List<ChangedItem<DtoType>> items)
         {
             foreach (var changeItem in items)
             {
-                var entity = changeItem.Data;
+                var entity = ConvertToEntity(changeItem.Data);
 
                 switch (changeItem.State)
                 {
-                    case ChangeState.Insert:
+                    case ChangeState.Add:
                         DBContext.Set<EntityType>().Add(entity);
                         break;
                     case ChangeState.Update:

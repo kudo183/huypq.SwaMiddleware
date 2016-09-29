@@ -80,7 +80,13 @@ namespace huypq.SwaMiddleware
 
                 var parameter = GetRequestParameter(context.Request);
 
-                SwaActionResult result = RequestExecutor(controller, action, parameter, context.Request);
+                var requestType = "json";
+                if (context.Request.Headers["request"].Count == 1)
+                {
+                    requestType = context.Request.Headers["request"][0];
+                }
+
+                SwaActionResult result = RequestExecutor(controller, action, parameter, context.Request, requestType);
 
                 if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
@@ -131,7 +137,8 @@ namespace huypq.SwaMiddleware
         }
 
         private static SwaActionResult RequestExecutor(
-            string controller, string action, Dictionary<string, object> parameter, HttpRequest request)
+            string controller, string action, Dictionary<string, object> parameter,
+            HttpRequest request, string requestType)
         {
             SwaActionResult result = null;
 
@@ -142,7 +149,7 @@ namespace huypq.SwaMiddleware
 
                 if (SwaSettings.Instance.TokenEnpoint == (controller + "." + action))
                 {
-                    result = ControllerInvoker(controller, action, parameter, null);
+                    result = ControllerInvoker(controller, action, parameter, null, requestType);
                     if (result.StatusCode == System.Net.HttpStatusCode.OK)
                     {
                         base64PlainToken = (result.ResultValue as SwaTokenModel).ToBase64();
@@ -151,7 +158,7 @@ namespace huypq.SwaMiddleware
                 }
                 else if (SwaSettings.Instance.AllowAnonymousActions.Contains(controller + "." + action))
                 {
-                    result = ControllerInvoker(controller, action, parameter, null);
+                    result = ControllerInvoker(controller, action, parameter, null, requestType);
                 }
                 else
                 {
@@ -160,27 +167,35 @@ namespace huypq.SwaMiddleware
                         var tokenText = request.Headers["token"][0];
                         base64PlainToken = protector.Unprotect(tokenText);
                         result = ControllerInvoker(
-                            controller, action, parameter, SwaTokenModel.FromBase64(base64PlainToken));
+                            controller, action, parameter, SwaTokenModel.FromBase64(base64PlainToken), requestType);
                     }
-                    catch (Exception ex)
+                    catch (System.Security.Cryptography.CryptographicException ex)
                     {
                         result = new SwaActionResult
                         {
                             StatusCode = System.Net.HttpStatusCode.Unauthorized
                         };
                     }
+                    catch (Exception ex)
+                    {
+                        result = new SwaActionResult
+                        {
+                            StatusCode = System.Net.HttpStatusCode.BadRequest
+                        };
+                    }
                 }
             }
             else
             {
-                result = ControllerInvoker(controller, action, parameter, null);
+                result = ControllerInvoker(controller, action, parameter, null, requestType);
             }
 
             return result;
         }
 
         private static SwaActionResult ControllerInvoker(
-            string controllerName, string actionName, Dictionary<string, object> parameter, SwaTokenModel token)
+            string controllerName, string actionName, Dictionary<string, object> parameter,
+            SwaTokenModel token, string requestType)
         {
             var controllerType = Type.GetType(
                 string.Format(_controllerNamespacePattern, controllerName), true, true);
@@ -188,8 +203,7 @@ namespace huypq.SwaMiddleware
             SwaController controller = Activator.CreateInstance(controllerType) as SwaController;
             controller.TokenModel = token;
             controller.App = _app;
-            controller.Result = new SwaActionResult();
-
+            controller.RequestObjectType = requestType;
             return controller.ActionInvoker(actionName, parameter);
         }
 
@@ -205,14 +219,11 @@ namespace huypq.SwaMiddleware
             response.ContentType = result.ContentType;
             switch (result.ResultType)
             {
-                case SwaActionResult.ActionResultType.Json:
-                    response.Headers["Content-Encoding"] = "gzip";
-                    SwaSettings.Instance.JsonSerializer.Serialize(response.Body, result.ResultValue);
-                    break;
                 case SwaActionResult.ActionResultType.Object:
                     switch (responseType)
                     {
                         case "protobuf":
+                            response.Headers["Content-Encoding"] = "gzip";
                             response.ContentType = "application/octet-stream";
                             SwaSettings.Instance.BinarySerializer.Serialize(response.Body, result.ResultValue);
                             break;

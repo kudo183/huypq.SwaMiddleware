@@ -7,10 +7,10 @@ namespace huypq.SwaMiddleware
     public abstract class SwaController
     {
         /// <summary>
-        /// result of the action
+        /// request paramter type: json or protobuf
         /// </summary>
-        public SwaActionResult Result { get; set; }
-
+        public string RequestObjectType { get; set; }
+        
         /// <summary>
         /// authentication token
         /// </summary>
@@ -28,22 +28,7 @@ namespace huypq.SwaMiddleware
         /// <param name="parameter"></param>
         /// <returns></returns>
         public abstract SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter);
-
-        /// <summary>
-        /// response body is json text
-        /// </summary>
-        /// <param name="resultValue"></param>
-        /// <returns></returns>
-        protected SwaActionResult CreateJsonResult(
-            object resultValue)
-        {
-            Result.ResultType = SwaActionResult.ActionResultType.Json;
-            Result.ResultValue = resultValue;
-            Result.ContentType = "application/json";
-            Result.StatusCode = System.Net.HttpStatusCode.OK;
-            return Result;
-        }
-
+        
         /// <summary>
         /// response body is binary stream
         /// </summary>
@@ -54,11 +39,12 @@ namespace huypq.SwaMiddleware
             Stream resultValue,
             string mimeType)
         {
-            Result.ResultType = SwaActionResult.ActionResultType.Stream;
-            Result.ResultValue = resultValue;
-            Result.ContentType = mimeType;
-            Result.StatusCode = System.Net.HttpStatusCode.OK;
-            return Result;
+            var result = new SwaActionResult();
+            result.ResultType = SwaActionResult.ActionResultType.Stream;
+            result.ResultValue = resultValue;
+            result.ContentType = mimeType;
+            result.StatusCode = System.Net.HttpStatusCode.OK;
+            return result;
         }
 
         /// <summary>
@@ -69,10 +55,11 @@ namespace huypq.SwaMiddleware
         protected SwaActionResult CreateStatusResult(
             System.Net.HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
         {
-            Result.ResultType = SwaActionResult.ActionResultType.Status;
-            Result.ResultValue = null;
-            Result.StatusCode = statusCode;
-            return Result;
+            var result = new SwaActionResult();
+            result.ResultType = SwaActionResult.ActionResultType.Status;
+            result.ResultValue = null;
+            result.StatusCode = statusCode;
+            return result;
         }
 
         /// <summary>
@@ -85,12 +72,13 @@ namespace huypq.SwaMiddleware
             Stream resultValue,
             string fileName)
         {
-            Result.ResultType = SwaActionResult.ActionResultType.File;
-            Result.ResultValue = resultValue;
-            Result.ContentType = MimeMapping.GetMimeType(fileName);
-            Result.FileName = fileName;
-            Result.StatusCode = System.Net.HttpStatusCode.OK;
-            return Result;
+            var result = new SwaActionResult();
+            result.ResultType = SwaActionResult.ActionResultType.File;
+            result.ResultValue = resultValue;
+            result.ContentType = MimeMapping.GetMimeType(fileName);
+            result.FileName = fileName;
+            result.StatusCode = System.Net.HttpStatusCode.OK;
+            return result;
         }
 
         /// <summary>
@@ -103,10 +91,11 @@ namespace huypq.SwaMiddleware
         protected SwaActionResult CreateObjectResult(
             object resultValue)
         {
-            Result.ResultType = SwaActionResult.ActionResultType.Object;
-            Result.ResultValue = resultValue;
-            Result.StatusCode = System.Net.HttpStatusCode.OK;
-            return Result;
+            var result = new SwaActionResult();
+            result.ResultType = SwaActionResult.ActionResultType.Object;
+            result.ResultValue = resultValue;
+            result.StatusCode = System.Net.HttpStatusCode.OK;
+            return result;
         }
 
     }
