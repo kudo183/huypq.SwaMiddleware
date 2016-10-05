@@ -8,7 +8,7 @@ namespace huypq.SwaMiddleware
 {
     public abstract class SwaEntityBaseController<ContextType, EntityType, DtoType> : SwaController, IDisposable
         where ContextType : DbContext
-        where EntityType : class, SwaIEntity
+        where EntityType : class
     {
         #region define class
         [ProtoBuf.ProtoContract]
@@ -45,7 +45,8 @@ namespace huypq.SwaMiddleware
         {
             get
             {
-                return (ContextType)App.ApplicationServices.GetService(typeof(ContextType)); ;
+                var context = (ContextType)Context.RequestServices.GetService(typeof(ContextType));
+                return context;
             }
         }
 
@@ -63,27 +64,31 @@ namespace huypq.SwaMiddleware
             return CreateObjectResult("OK");
         }
 
+        public override SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter)
+        {
+            SwaActionResult result = null;
+
+            switch (actionName)
+            {
+                case "get":
+                    result = CreateObjectResult(Get(parameter["body"] as System.IO.Stream, DBContext.Set<EntityType>()));
+                    break;
+                case "save":
+                    result = Save(parameter["body"] as System.IO.Stream);
+                    break;
+                default:
+                    break;
+            }
+
+            return result;
+        }
+
         public void Dispose()
         {
             if (DBContext != null)
             {
                 DBContext.Dispose();
             }
-        }
-
-        protected PagingResultDto<DtoType> GetAll(IQueryable<EntityType> includedQuery)
-        {
-            var result = new PagingResultDto<DtoType>();
-            result.Items = new List<DtoType>();
-            foreach (var entity in includedQuery)
-            {
-                result.Items.Add(ConvertToDto(entity));
-            }
-
-            result.TotalItemCount = result.Items.Count;
-            result.PageCount = 1;
-            result.PageIndex = 1;
-            return result;
         }
 
         protected PagingResultDto<DtoType> Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)

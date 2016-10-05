@@ -1,17 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace huypq.SwaMiddleware
+﻿namespace huypq.SwaMiddleware
 {
-    public class SwaUser : SwaIEntity
+    public interface SwaIUser : SwaIEntity
     {
-        [Key]
-        public int Ma { get; set; }
-        [Required]
-        [MaxLength(256)]
-        public string Email { get; set; }
-        [Required]
-        [MaxLength(128)]
-        public string PasswordHash { get; set; }
-        public System.DateTime NgayTao { get; set; }
+        string Email { get; set; }
+        string PasswordHash { get; set; }
+        System.DateTime NgayTao { get; set; }
     }
 }

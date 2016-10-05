@@ -6,7 +6,7 @@ using System.Linq;
 namespace huypq.SwaMiddleware
 {
     public class SwaUserBaseController<ContextType, UserEntityType, DtoType> : SwaEntityBaseController<ContextType, UserEntityType, DtoType>
-        where UserEntityType : SwaUser, new()
+        where UserEntityType : class, SwaIUser, new()
         where ContextType : DbContext, SwaIDbContext<UserEntityType>
     {
         public override SwaActionResult ActionInvoker(string actionName, Dictionary<string, object> parameter)

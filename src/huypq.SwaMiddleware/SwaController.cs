@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.IO;
 
@@ -17,9 +18,14 @@ namespace huypq.SwaMiddleware
         public SwaTokenModel TokenModel { get; set; }
 
         /// <summary>
-        /// application builder, use for get Dependency Injection service
+        /// 
         /// </summary>
         public IApplicationBuilder App { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public HttpContext Context { get; set; }
 
         /// <summary>
         /// mapping actionName to corresponding controller method, including paremeter convert.

@@ -17,7 +17,7 @@ namespace huypq.SwaMiddleware
         /// <returns></returns>
         public static IServiceCollection AddSwaWithTrustedConnection<ContextType, UserEntity>(
             this IServiceCollection services, string dbName, string tokenEncryptKeyDirectoryPath)
-            where UserEntity : SwaUser
+            where UserEntity : class, SwaIUser
             where ContextType : DbContext, SwaIDbContext<UserEntity>
         {
             var connection = string.Format(@"Server=.;Database={0};Trusted_Connection=True;", dbName);
@@ -36,10 +36,10 @@ namespace huypq.SwaMiddleware
         /// <returns></returns>
         public static IServiceCollection AddSwa<ContextType, UserEntity>(
             this IServiceCollection services, string connection, string tokenEncryptKeyDirectoryPath)
-            where UserEntity : SwaUser
+            where UserEntity : class, SwaIUser
             where ContextType : DbContext, SwaIDbContext<UserEntity>
         {
-            services.AddDbContext<ContextType>(options => options.UseSqlServer(connection));
+            services.AddDbContext<ContextType>(options => options.UseSqlServer(connection), ServiceLifetime.Scoped);
             services.AddDataProtection()
                 .PersistKeysToFileSystem(new System.IO.DirectoryInfo(tokenEncryptKeyDirectoryPath))
                 .ProtectKeysWithDpapi();
