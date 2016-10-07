@@ -108,14 +108,20 @@ namespace huypq.SwaMiddleware
 
         protected PagingResultDto<DtoType> Get(QueryExpression filter, IQueryable<EntityType> includedQuery)
         {
-            int pageCount;
-
-            var query = QueryExpression.AddQueryExpression(
+            int pageCount = 1;
+            int pageIndex = 1;
+            var query = includedQuery;
+            if (filter != null)
+            {
+                query = QueryExpression.AddQueryExpression(
                 includedQuery, filter, SwaSettings.Instance.DefaultPageSize, out pageCount);
+
+                pageIndex = filter.PageIndex;
+            }
 
             var result = new PagingResultDto<DtoType>
             {
-                PageIndex = filter.PageIndex,
+                PageIndex = pageIndex,
                 PageCount = pageCount,
                 Items = new List<DtoType>()
             };
