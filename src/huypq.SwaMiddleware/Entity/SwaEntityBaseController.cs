@@ -22,6 +22,8 @@ namespace huypq.SwaMiddleware
             public int PageCount { get; set; }
             [ProtoBuf.ProtoMember(4)]
             public List<T> Items { get; set; }
+            [ProtoBuf.ProtoMember(5)]
+            public int VersionNumber { get; set; }
         }
 
         public class ChangeState
@@ -41,6 +43,8 @@ namespace huypq.SwaMiddleware
         }
         #endregion
 
+        private static int VersionNumber = 1;
+
         protected ContextType DBContext
         {
             get
@@ -54,7 +58,11 @@ namespace huypq.SwaMiddleware
         {
             try
             {
-                DBContext.SaveChanges();
+                var changeCount = DBContext.SaveChanges();
+                if (changeCount > 0)
+                {
+                    System.Threading.Interlocked.Increment(ref VersionNumber);
+                }
             }
             catch (Exception ex)
             {
@@ -71,7 +79,7 @@ namespace huypq.SwaMiddleware
             switch (actionName)
             {
                 case "get":
-                    result = CreateObjectResult(Get(parameter["body"] as System.IO.Stream, DBContext.Set<EntityType>()));
+                    result = CreateObjectResult(Get(parameter["body"] as System.IO.Stream, GetQuery()));
                     break;
                 case "save":
                     result = Save(parameter["body"] as System.IO.Stream);
@@ -91,6 +99,11 @@ namespace huypq.SwaMiddleware
             }
         }
 
+        protected virtual IQueryable<EntityType> GetQuery()
+        {
+            return DBContext.Set<EntityType>();
+        }
+        
         protected PagingResultDto<DtoType> Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)
         {
             QueryExpression filter = null;
@@ -111,6 +124,17 @@ namespace huypq.SwaMiddleware
             int pageCount = 1;
             int pageIndex = 1;
             var query = includedQuery;
+            var result = new PagingResultDto<DtoType>
+            {
+                Items = new List<DtoType>()
+            };
+
+            result.VersionNumber = VersionNumber;
+            if (result.VersionNumber == filter.VersionNumber)
+            {
+                return result;
+            }
+
             if (filter != null)
             {
                 query = QueryExpression.AddQueryExpression(
@@ -119,12 +143,8 @@ namespace huypq.SwaMiddleware
                 pageIndex = filter.PageIndex;
             }
 
-            var result = new PagingResultDto<DtoType>
-            {
-                PageIndex = pageIndex,
-                PageCount = pageCount,
-                Items = new List<DtoType>()
-            };
+            result.PageIndex = pageIndex;
+            result.PageCount = pageCount;
 
             foreach (var entity in query)
             {
