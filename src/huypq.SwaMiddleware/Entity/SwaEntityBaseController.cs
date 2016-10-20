@@ -23,7 +23,7 @@ namespace huypq.SwaMiddleware
             [ProtoBuf.ProtoMember(4)]
             public List<T> Items { get; set; }
             [ProtoBuf.ProtoMember(5)]
-            public int VersionNumber { get; set; }
+            public long VersionNumber { get; set; }
         }
 
         public class ChangeState
@@ -42,8 +42,8 @@ namespace huypq.SwaMiddleware
             public T Data { get; set; }
         }
         #endregion
-
-        private static int VersionNumber = 1;
+        
+        private static long VersionNumber = DateTime.UtcNow.Ticks;
 
         protected ContextType DBContext
         {
