@@ -79,7 +79,7 @@ namespace huypq.SwaMiddleware
             switch (actionName)
             {
                 case "get":
-                    result = CreateObjectResult(Get(parameter["body"] as System.IO.Stream, GetQuery()));
+                    result = Get(parameter["body"] as System.IO.Stream, GetQuery());
                     break;
                 case "save":
                     result = Save(parameter["body"] as System.IO.Stream);
@@ -104,7 +104,7 @@ namespace huypq.SwaMiddleware
             return DBContext.Set<EntityType>();
         }
         
-        protected PagingResultDto<DtoType> Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)
+        protected SwaActionResult Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)
         {
             QueryExpression filter = null;
             switch (RequestObjectType)
@@ -116,7 +116,7 @@ namespace huypq.SwaMiddleware
                     filter = SwaSettings.Instance.BinarySerializer.Deserialize<QueryExpression>(requestBody);
                     break;
             }
-            return Get(filter, includedQuery);
+            return CreateObjectResult(Get(filter, includedQuery));
         }
 
         protected PagingResultDto<DtoType> Get(QueryExpression filter, IQueryable<EntityType> includedQuery)
