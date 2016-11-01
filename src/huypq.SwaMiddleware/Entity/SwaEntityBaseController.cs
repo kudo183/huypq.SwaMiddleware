@@ -24,6 +24,8 @@ namespace huypq.SwaMiddleware
             public List<T> Items { get; set; }
             [ProtoBuf.ProtoMember(5)]
             public long VersionNumber { get; set; }
+            [ProtoBuf.ProtoMember(6)]
+            public string ErrorMsg { get; set; }
         }
 
         public class ChangeState
@@ -42,7 +44,7 @@ namespace huypq.SwaMiddleware
             public T Data { get; set; }
         }
         #endregion
-        
+
         private static long VersionNumber = DateTime.UtcNow.Ticks;
 
         protected ContextType DBContext
@@ -103,7 +105,7 @@ namespace huypq.SwaMiddleware
         {
             return DBContext.Set<EntityType>();
         }
-        
+
         protected SwaActionResult Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)
         {
             QueryExpression filter = null;
@@ -135,12 +137,28 @@ namespace huypq.SwaMiddleware
                 return result;
             }
 
-            if (filter != null)
+            if (filter != null && filter.PageIndex > 0)//paging
             {
+                var pageSize = GetPageSize();
                 query = QueryExpression.AddQueryExpression(
-                includedQuery, filter, SwaSettings.Instance.DefaultPageSize, out pageCount);
-
+                query, filter, pageSize, out pageCount);
                 pageIndex = filter.PageIndex;
+            }
+            else//no paging
+            {
+                if (filter != null)
+                {
+                    query = WhereExpression.AddWhereExpression(query, filter.WhereOptions);
+                }
+
+                var itemCount = query.Count();
+                var maxItem = GetMaxItemAllowed();
+
+                if (itemCount > maxItem)
+                {
+                    result.ErrorMsg = "Entity set too large, please use paging";
+                    return result;
+                }
             }
 
             result.PageIndex = pageIndex;
@@ -152,6 +170,16 @@ namespace huypq.SwaMiddleware
             }
 
             return result;
+        }
+
+        protected virtual int GetMaxItemAllowed()
+        {
+            return SwaSettings.Instance.MaxItemAllowed;
+        }
+
+        protected virtual int GetPageSize()
+        {
+            return SwaSettings.Instance.DefaultPageSize;
         }
 
         protected SwaActionResult Save(System.IO.Stream requestBody)

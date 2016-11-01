@@ -6,7 +6,8 @@ namespace huypq.SwaMiddleware
     {
         private static readonly SwaSettings _instance = new SwaSettings()
         {
-            DefaultPageSize = 15,
+            DefaultPageSize = 20,
+            MaxItemAllowed = 1000,
             JsonSerializer = new SwaNewtonJsonSerializer(),
             BinarySerializer = new SwaProtobufBinarySerializer()
         };
@@ -20,6 +21,11 @@ namespace huypq.SwaMiddleware
         /// Result paging size
         /// </summary>
         public int DefaultPageSize { get; set; }
+
+        /// <summary>
+        /// Result paging size
+        /// </summary>
+        public int MaxItemAllowed { get; set; }
 
         /// <summary>
         /// If true: need set TokenEnpoint. Default all action need provide token.
