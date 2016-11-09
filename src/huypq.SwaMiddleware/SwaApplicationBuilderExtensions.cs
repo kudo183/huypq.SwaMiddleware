@@ -29,7 +29,7 @@ namespace huypq.SwaMiddleware
         {
             SwaSettings.Instance.IsUseTokenAuthentication = true;
             SwaSettings.Instance.TokenEnpoint = "user.token";
-            SwaSettings.Instance.AllowAnonymousActions = new List<string>() { "user.register" };
+            SwaSettings.Instance.AllowAnonymousActions = new List<string>() { "user.register", "user.getgroups" };
 
             return app.UseSwa(applicationNamespace);
         }

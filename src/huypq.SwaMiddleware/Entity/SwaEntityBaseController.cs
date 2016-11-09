@@ -8,7 +8,7 @@ namespace huypq.SwaMiddleware
 {
     public abstract class SwaEntityBaseController<ContextType, EntityType, DtoType> : SwaController, IDisposable
         where ContextType : DbContext
-        where EntityType : class
+        where EntityType : class, SwaIEntity
     {
         #region define class
         [ProtoBuf.ProtoContract]
@@ -103,7 +103,7 @@ namespace huypq.SwaMiddleware
 
         protected virtual IQueryable<EntityType> GetQuery()
         {
-            return DBContext.Set<EntityType>();
+            return DBContext.Set<EntityType>().Where(p => p.MaGroup == TokenModel.GroupId);
         }
 
         protected SwaActionResult Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)

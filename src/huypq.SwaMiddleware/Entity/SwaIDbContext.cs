@@ -2,8 +2,13 @@
 
 namespace huypq.SwaMiddleware
 {
-    public interface SwaIDbContext<T> where T : class, SwaIUser
+    public interface SwaIDbContext<T, T1, T2>
+        where T : class, SwaIUser
+        where T1 : class, SwaIGroup
+        where T2 : class, SwaIUserGroup
     {
         DbSet<T> User { get; set; }
+        DbSet<T1> Group { get; set; }
+        DbSet<T2> UserGroup { get; set; }
     }
 }

@@ -15,6 +15,16 @@ namespace huypq.SwaMiddleware
         public int UserId { get; set; }
 
         /// <summary>
+        /// GroupId of the logged in user
+        /// </summary>
+        public int GroupId { get; set; }
+
+        /// <summary>
+        /// The logged in user is Group Owner
+        /// </summary>
+        public bool IsGroupOwner { get; set; }
+
+        /// <summary>
         /// Token craetion time (int Utc)
         /// </summary>
         public DateTime CreateTime { get; set; }
@@ -30,6 +40,8 @@ namespace huypq.SwaMiddleware
             using (var bw = new System.IO.BinaryWriter(ms))
             {
                 bw.Write(UserId);
+                bw.Write(GroupId);
+                bw.Write(IsGroupOwner);
                 bw.Write(User);
                 bw.Write(CreateTime.ToBinary());
                 bw.Flush();
@@ -45,6 +57,8 @@ namespace huypq.SwaMiddleware
             using (var br = new System.IO.BinaryReader(ms))
             {
                 result.UserId = br.ReadInt32();
+                result.GroupId = br.ReadInt32();
+                result.IsGroupOwner = br.ReadBoolean();
                 result.User = br.ReadString();
                 result.CreateTime = DateTime.FromBinary(br.ReadInt64());
 

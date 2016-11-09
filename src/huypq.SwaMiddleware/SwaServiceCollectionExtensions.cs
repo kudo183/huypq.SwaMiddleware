@@ -15,14 +15,16 @@ namespace huypq.SwaMiddleware
         /// <param name="dbName">Sql connection string to store user login info</param>
         /// <param name="tokenEncryptKeyDirectoryPath">Directory to store key use to encrypt Token</param>
         /// <returns></returns>
-        public static IServiceCollection AddSwaWithTrustedConnection<ContextType, UserEntity>(
+        public static IServiceCollection AddSwaWithTrustedConnection<ContextType, UserEntity, GroupEntity, UserGroupEntity>(
             this IServiceCollection services, string dbName, string tokenEncryptKeyDirectoryPath)
             where UserEntity : class, SwaIUser
-            where ContextType : DbContext, SwaIDbContext<UserEntity>
+            where GroupEntity : class, SwaIGroup
+            where UserGroupEntity : class, SwaIUserGroup
+            where ContextType : DbContext, SwaIDbContext<UserEntity, GroupEntity, UserGroupEntity>
         {
             var connection = string.Format(@"Server=.;Database={0};Trusted_Connection=True;", dbName);
 
-            return AddSwa<ContextType, UserEntity>(services, connection, tokenEncryptKeyDirectoryPath);
+            return AddSwa<ContextType, UserEntity, GroupEntity, UserGroupEntity>(services, connection, tokenEncryptKeyDirectoryPath);
         }
 
         /// <summary>
@@ -34,10 +36,12 @@ namespace huypq.SwaMiddleware
         /// <param name="connection">Sql connection string to store user login info</param>
         /// <param name="tokenEncryptKeyDirectoryPath">Directory to store key use to encrypt Token</param>
         /// <returns></returns>
-        public static IServiceCollection AddSwa<ContextType, UserEntity>(
+        public static IServiceCollection AddSwa<ContextType, UserEntity, GroupEntity, UserGroupEntity>(
             this IServiceCollection services, string connection, string tokenEncryptKeyDirectoryPath)
             where UserEntity : class, SwaIUser
-            where ContextType : DbContext, SwaIDbContext<UserEntity>
+            where GroupEntity : class, SwaIGroup
+            where UserGroupEntity : class, SwaIUserGroup
+            where ContextType : DbContext, SwaIDbContext<UserEntity, GroupEntity, UserGroupEntity>
         {
             services.AddDbContext<ContextType>(options => options.UseSqlServer(connection), ServiceLifetime.Scoped);
             services.AddDataProtection()
