@@ -2,9 +2,9 @@
 {
     public interface SwaIUserGroup
     {
-        bool LaChuGroup { get; set; }
-        int Ma { get; set; }
-        int MaGroup { get; set; }
-        int MaUser { get; set; }
+        bool IsGroupOwner { get; set; }
+        int ID { get; set; }
+        int GroupID { get; set; }
+        int UserID { get; set; }
     }
 }

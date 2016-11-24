@@ -7,8 +7,8 @@ namespace huypq.SwaMiddleware
         where T1 : class, SwaIGroup
         where T2 : class, SwaIUserGroup
     {
-        DbSet<T> User { get; set; }
-        DbSet<T1> Group { get; set; }
-        DbSet<T2> UserGroup { get; set; }
+        DbSet<T> SwaUser { get; set; }
+        DbSet<T1> SwaGroup { get; set; }
+        DbSet<T2> SwaUserGroup { get; set; }
     }
 }

@@ -2,9 +2,9 @@
 {
     public interface SwaIUser
     {
-        int Ma { get; }
+        int ID { get; }
         string Email { get; set; }
         string PasswordHash { get; set; }
-        System.DateTime NgayTao { get; set; }
+        System.DateTime CreateDate { get; set; }
     }
 }

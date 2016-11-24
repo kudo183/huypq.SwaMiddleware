@@ -2,7 +2,7 @@
 {
     public interface SwaIEntity
     {
-        int Ma { get; }
-        int MaGroup { get; set; }
+        int ID { get; }
+        int GroupID { get; set; }
     }
 }

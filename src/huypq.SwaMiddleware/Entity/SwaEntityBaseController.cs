@@ -103,7 +103,7 @@ namespace huypq.SwaMiddleware
 
         protected virtual IQueryable<EntityType> GetQuery()
         {
-            return DBContext.Set<EntityType>().Where(p => p.MaGroup == TokenModel.GroupId);
+            return DBContext.Set<EntityType>().Where(p => p.GroupID == TokenModel.GroupId);
         }
 
         protected SwaActionResult Get(System.IO.Stream requestBody, IQueryable<EntityType> includedQuery)

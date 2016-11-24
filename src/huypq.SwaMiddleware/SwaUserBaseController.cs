@@ -65,7 +65,7 @@ namespace huypq.SwaMiddleware
                 return CreateStatusResult(System.Net.HttpStatusCode.BadRequest);
             }
 
-            if (DBContext.User.Any(p => p.Email == user))
+            if (DBContext.SwaUser.Any(p => p.Email == user))
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
@@ -74,15 +74,15 @@ namespace huypq.SwaMiddleware
             {
                 Email = user,
                 PasswordHash = hasher.HashedBase64String(pass),
-                NgayTao = DateTime.UtcNow
+                CreateDate  = DateTime.UtcNow
             };
-            DBContext.User.Add(entity);
+            DBContext.SwaUser.Add(entity);
             DBContext.SaveChanges();
-            DBContext.UserGroup.Add(new UserGroupEntityType()
+            DBContext.SwaUserGroup.Add(new UserGroupEntityType()
             {
-                LaChuGroup = false,
-                MaUser = entity.Ma,
-                MaGroup = TokenModel.GroupId
+                IsGroupOwner = false,
+                UserID = entity.ID,
+                GroupID = TokenModel.GroupId
             });
             DBContext.SaveChanges();
             return CreateObjectResult("OK");
@@ -95,12 +95,12 @@ namespace huypq.SwaMiddleware
                 return CreateStatusResult(System.Net.HttpStatusCode.BadRequest);
             }
 
-            if (DBContext.User.Any(p => p.Email == user))
+            if (DBContext.SwaUser.Any(p => p.Email == user))
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
 
-            if (DBContext.Group.Any(p => p.TenGroup == group))
+            if (DBContext.SwaGroup.Any(p => p.GroupName == group))
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
@@ -110,24 +110,24 @@ namespace huypq.SwaMiddleware
             {
                 Email = user,
                 PasswordHash = hasher.HashedBase64String(pass),
-                NgayTao = DateTime.UtcNow
+                CreateDate = DateTime.UtcNow
             };
-            DBContext.User.Add(entity);
+            DBContext.SwaUser.Add(entity);
 
             var groupEntity = new GroupEntityType()
             {
-                TenGroup = group,
-                NgayTao = DateTime.UtcNow
+                GroupName = group,
+                CreateDate = DateTime.UtcNow
             };
-            DBContext.Group.Add(groupEntity);
+            DBContext.SwaGroup.Add(groupEntity);
 
             DBContext.SaveChanges();
 
-            DBContext.UserGroup.Add(new UserGroupEntityType()
+            DBContext.SwaUserGroup.Add(new UserGroupEntityType()
             {
-                LaChuGroup = true,
-                MaUser = entity.Ma,
-                MaGroup = groupEntity.Ma
+                IsGroupOwner = true,
+                UserID = entity.ID,
+                GroupID = groupEntity.ID
             });
             DBContext.SaveChanges();
 
@@ -141,19 +141,19 @@ namespace huypq.SwaMiddleware
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            var userEntity = DBContext.User.FirstOrDefault(p => p.Email == user);
+            var userEntity = DBContext.SwaUser.FirstOrDefault(p => p.Email == user);
             if (userEntity == null)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            var groupEntity = DBContext.Group.FirstOrDefault(p => p.TenGroup == group);
+            var groupEntity = DBContext.SwaGroup.FirstOrDefault(p => p.GroupName == group);
             if (groupEntity == null)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            var userGroupEntity = DBContext.UserGroup.FirstOrDefault(p => p.MaUser == userEntity.Ma && p.MaGroup == groupEntity.Ma);
+            var userGroupEntity = DBContext.SwaUserGroup.FirstOrDefault(p => p.UserID == userEntity.ID && p.GroupID == groupEntity.ID);
             if (userGroupEntity == null)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
@@ -165,7 +165,7 @@ namespace huypq.SwaMiddleware
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            return CreateObjectResult(new SwaTokenModel() { User = userEntity.Email, UserId = userEntity.Ma, GroupId = groupEntity.Ma, IsGroupOwner = userGroupEntity.LaChuGroup });
+            return CreateObjectResult(new SwaTokenModel() { User = userEntity.Email, UserId = userEntity.ID, GroupId = groupEntity.ID, IsGroupOwner = userGroupEntity.IsGroupOwner });
         }
 
         public SwaActionResult GetGroups(string user)
@@ -175,22 +175,22 @@ namespace huypq.SwaMiddleware
                 return CreateObjectResult("");
             }
 
-            var userEntity = DBContext.User.FirstOrDefault(p => p.Email == user);
+            var userEntity = DBContext.SwaUser.FirstOrDefault(p => p.Email == user);
             if (userEntity == null)
             {
                 return CreateObjectResult("");
             }
 
-            var maGroups = DBContext.UserGroup.Where(p => p.MaUser == userEntity.Ma).Select(p => p.MaGroup);
+            var maGroups = DBContext.SwaUserGroup.Where(p => p.UserID == userEntity.ID).Select(p => p.GroupID);
             if (maGroups == null)
             {
                 return CreateObjectResult("");
             }
 
-            var groups = DBContext.Group.Where(p => maGroups.Contains(p.Ma));
+            var groups = DBContext.SwaGroup.Where(p => maGroups.Contains(p.ID));
 
             var result = string.Empty;
-            foreach (var item in groups.Select(p => p.TenGroup))
+            foreach (var item in groups.Select(p => p.GroupName))
             {
                 result = result + item + "*&*";
             }

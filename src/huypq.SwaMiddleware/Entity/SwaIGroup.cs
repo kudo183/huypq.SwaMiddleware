@@ -2,9 +2,9 @@
 {
     public interface SwaIGroup
     {
-        int Ma { get; set; }
-        System.DateTime NgayTao { get; set; }
-        string TenGroup { get; set; }
+        int ID { get; set; }
+        System.DateTime CreateDate { get; set; }
+        string GroupName { get; set; }
 
     }
 }
