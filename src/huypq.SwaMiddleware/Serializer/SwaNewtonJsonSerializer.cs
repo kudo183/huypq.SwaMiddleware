@@ -13,8 +13,9 @@ namespace huypq.SwaMiddleware
         {
             var settings = new JsonSerializerSettings
             {
+                TypeNameHandling = TypeNameHandling.Auto,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                DateTimeZoneHandling = DateTimeZoneHandling.Local,
+                DateTimeZoneHandling = DateTimeZoneHandling.Unspecified,
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
 

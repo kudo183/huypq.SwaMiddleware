@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace huypq.SwaMiddleware
 {
@@ -11,6 +12,9 @@ namespace huypq.SwaMiddleware
             JsonSerializer = new SwaNewtonJsonSerializer(),
             BinarySerializer = new SwaProtobufBinarySerializer()
         };
+        
+        //because javascript max number is 53 bit, so need substract some date to make this number smaller
+        public static long ServerStartTime = DateTime.UtcNow.Ticks - new DateTime(2015, 1, 1).Ticks;
 
         public static SwaSettings Instance
         {

@@ -2,7 +2,7 @@
 {
     public interface SwaIGroup
     {
-        int ID { get; set; }
+        int ID { get;}
         System.DateTime CreateDate { get; set; }
         string GroupName { get; set; }
 

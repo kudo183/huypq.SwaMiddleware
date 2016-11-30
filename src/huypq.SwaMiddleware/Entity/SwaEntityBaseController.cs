@@ -26,6 +26,8 @@ namespace huypq.SwaMiddleware
             public long VersionNumber { get; set; }
             [ProtoBuf.ProtoMember(6)]
             public string ErrorMsg { get; set; }
+            [ProtoBuf.ProtoMember(7)]
+            public long ServerStartTime { get; set; }
         }
 
         public class ChangeState
@@ -45,7 +47,12 @@ namespace huypq.SwaMiddleware
         }
         #endregion
 
-        private static long VersionNumber = DateTime.UtcNow.Ticks;
+        private static long VersionNumber = 1;
+
+        public static void IncreaseVersionNumber()
+        {
+            System.Threading.Interlocked.Increment(ref VersionNumber);
+        }
 
         protected ContextType DBContext
         {
@@ -63,8 +70,9 @@ namespace huypq.SwaMiddleware
                 var changeCount = DBContext.SaveChanges();
                 if (changeCount > 0)
                 {
-                    System.Threading.Interlocked.Increment(ref VersionNumber);
+                    IncreaseVersionNumber();
                 }
+                AfterSave();
             }
             catch (Exception ex)
             {
@@ -101,6 +109,11 @@ namespace huypq.SwaMiddleware
             }
         }
 
+        protected virtual void AfterSave()
+        {
+
+        }
+
         protected virtual IQueryable<EntityType> GetQuery()
         {
             return DBContext.Set<EntityType>().Where(p => p.GroupID == TokenModel.GroupId);
@@ -132,7 +145,10 @@ namespace huypq.SwaMiddleware
             };
 
             result.VersionNumber = VersionNumber;
-            if (result.VersionNumber == filter.VersionNumber)
+            result.ServerStartTime = SwaSettings.ServerStartTime;
+
+            if (result.ServerStartTime == filter.ServerStartTime
+                && result.VersionNumber == filter.VersionNumber)
             {
                 return result;
             }
@@ -150,6 +166,8 @@ namespace huypq.SwaMiddleware
                 {
                     query = WhereExpression.AddWhereExpression(query, filter.WhereOptions);
                 }
+
+                query = OrderByExpression.AddOrderByExpression(query, filter.OrderOptions);
 
                 var itemCount = query.Count();
                 var maxItem = GetMaxItemAllowed();
