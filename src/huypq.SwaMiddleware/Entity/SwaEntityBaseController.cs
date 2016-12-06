@@ -228,6 +228,7 @@ namespace huypq.SwaMiddleware
                 switch (changeItem.State)
                 {
                     case ChangeState.Add:
+                        entity.GroupID = TokenModel.GroupId;
                         DBContext.Set<EntityType>().Add(entity);
                         break;
                     case ChangeState.Update:
