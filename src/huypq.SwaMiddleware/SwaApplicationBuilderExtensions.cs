@@ -28,8 +28,9 @@ namespace huypq.SwaMiddleware
             this IApplicationBuilder app, string applicationNamespace)
         {
             SwaSettings.Instance.IsUseTokenAuthentication = true;
-            SwaSettings.Instance.TokenEnpoint = "user.token";
-            SwaSettings.Instance.AllowAnonymousActions = new List<string>() { "user.register", "user.getgroups" };
+            SwaSettings.Instance.LoginEnpoint = "user.login";
+            SwaSettings.Instance.AccessTokenEnpoint = "user.accesstoken";
+            SwaSettings.Instance.AllowAnonymousActions = new List<string>() { "user.register" };
 
             return app.UseSwa(applicationNamespace);
         }
@@ -148,7 +149,8 @@ namespace huypq.SwaMiddleware
                 var protector = _app.ApplicationServices.GetDataProtector("token");
                 string base64PlainToken = "";
 
-                if (SwaSettings.Instance.TokenEnpoint == (controller + "." + action))
+                var endpoint = controller + "." + action;
+                if (SwaSettings.Instance.LoginEnpoint == endpoint)
                 {
                     result = ControllerInvoker(controller, action, parameter, null, requestType, context);
                     if (result.StatusCode == System.Net.HttpStatusCode.OK)
@@ -157,7 +159,7 @@ namespace huypq.SwaMiddleware
                         result.ResultValue = protector.Protect(base64PlainToken);
                     }
                 }
-                else if (SwaSettings.Instance.AllowAnonymousActions.Contains(controller + "." + action))
+                else if (SwaSettings.Instance.AllowAnonymousActions.Contains(endpoint))
                 {
                     result = ControllerInvoker(controller, action, parameter, null, requestType, context);
                 }
@@ -169,6 +171,15 @@ namespace huypq.SwaMiddleware
                         base64PlainToken = protector.Unprotect(tokenText);
                         result = ControllerInvoker(
                             controller, action, parameter, SwaTokenModel.FromBase64(base64PlainToken), requestType, context);
+
+                        if (SwaSettings.Instance.AccessTokenEnpoint == endpoint)
+                        {
+                            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                            {
+                                base64PlainToken = (result.ResultValue as SwaTokenModel).ToBase64();
+                                result.ResultValue = protector.Protect(base64PlainToken);
+                            }
+                        }
                     }
                     catch (System.Security.Cryptography.CryptographicException ex)
                     {

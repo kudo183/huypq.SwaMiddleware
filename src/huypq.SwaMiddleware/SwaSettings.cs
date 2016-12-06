@@ -41,9 +41,16 @@ namespace huypq.SwaMiddleware
         /// <summary>
         /// Specify action which will verify user, password and return a encrypted token string.
         /// Format: {controller}.{action}
-        /// Default is "user.token"
+        /// Default is "user.login"
         /// </summary>
-        public string TokenEnpoint { get; set; }
+        public string LoginEnpoint { get; set; }
+
+        /// <summary>
+        /// Specify action which will verify group and return a encrypted token string.
+        /// Format: {controller}.{action}
+        /// Default is "user.accesstoken"
+        /// </summary>
+        public string AccessTokenEnpoint { get; set; }
 
         /// <summary>
         /// Specify list of action which allow anonymous user

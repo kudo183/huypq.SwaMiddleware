@@ -26,8 +26,11 @@ namespace huypq.SwaMiddleware
 
             switch (actionName)
             {
-                case "token":
-                    result = Token(parameter["user"].ToString(), parameter["pass"].ToString(), parameter["group"].ToString());
+                case "login":
+                    result = Login(parameter["user"].ToString(), parameter["pass"].ToString());
+                    break;
+                case "accesstoken":
+                    result = Token(parameter["group"].ToString());
                     break;
                 case "getgroups":
                     result = GetGroups(parameter["user"].ToString());
@@ -134,7 +137,7 @@ namespace huypq.SwaMiddleware
             return CreateObjectResult("OK");
         }
 
-        public SwaActionResult Token(string user, string pass, string group)
+        public SwaActionResult Login(string user, string pass)
         {
             if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
             {
@@ -146,26 +149,31 @@ namespace huypq.SwaMiddleware
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
-
-            var groupEntity = DBContext.SwaGroup.FirstOrDefault(p => p.GroupName == group);
-            if (groupEntity == null)
-            {
-                return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
-            }
-
-            var userGroupEntity = DBContext.SwaUserGroup.FirstOrDefault(p => p.UserID == userEntity.ID && p.GroupID == groupEntity.ID);
-            if (userGroupEntity == null)
-            {
-                return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
-            }
-
+            
             var result = huypq.Crypto.PasswordHash.VerifyHashedPassword(userEntity.PasswordHash, pass);
             if (result == false)
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
             }
 
-            return CreateObjectResult(new SwaTokenModel() { User = userEntity.Email, UserId = userEntity.ID, GroupId = groupEntity.ID, IsGroupOwner = userGroupEntity.IsGroupOwner });
+            return CreateObjectResult(new SwaTokenModel() { User = userEntity.Email, UserId = userEntity.ID });
+        }
+
+        public SwaActionResult Token(string group)
+        {
+            var groupEntity = DBContext.SwaGroup.FirstOrDefault(p => p.GroupName == group);
+            if (groupEntity == null)
+            {
+                return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
+            }
+
+            var userGroupEntity = DBContext.SwaUserGroup.FirstOrDefault(p => p.UserID == TokenModel.UserId && p.GroupID == groupEntity.ID);
+            if (userGroupEntity == null)
+            {
+                return CreateStatusResult(System.Net.HttpStatusCode.Unauthorized);
+            }
+            
+            return CreateObjectResult(new SwaTokenModel() { User = TokenModel.User, UserId = TokenModel.UserId, GroupId = groupEntity.ID, IsGroupOwner = userGroupEntity.IsGroupOwner });
         }
 
         public SwaActionResult GetGroups(string user)
