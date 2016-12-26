@@ -232,10 +232,16 @@ namespace huypq.SwaMiddleware
                         DBContext.Set<EntityType>().Add(entity);
                         break;
                     case ChangeState.Update:
-                        DBContext.Entry(entity).State = EntityState.Modified;
+                        if (entity.GroupID == TokenModel.GroupId)
+                        {
+                            DBContext.Entry(entity).State = EntityState.Modified;
+                        }
                         break;
                     case ChangeState.Delete:
-                        DBContext.Set<EntityType>().Remove(entity);
+                        if (entity.GroupID == TokenModel.GroupId)
+                        {
+                            DBContext.Set<EntityType>().Remove(entity);
+                        }
                         break;
                     default:
                         return CreateStatusResult(System.Net.HttpStatusCode.InternalServerError);
