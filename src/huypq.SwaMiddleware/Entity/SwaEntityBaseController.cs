@@ -234,7 +234,7 @@ namespace huypq.SwaMiddleware
                     case ChangeState.Update:
                         if (entity.GroupID == TokenModel.GroupId)
                         {
-                            DBContext.Entry(entity).State = EntityState.Modified;
+                            UpdateEntity(DBContext, entity);
                         }
                         break;
                     case ChangeState.Delete:
@@ -249,6 +249,11 @@ namespace huypq.SwaMiddleware
             }
 
             return SaveChanges();
+        }
+
+        protected virtual void UpdateEntity(ContextType context, EntityType entity)
+        {
+            context.Entry(entity).State = EntityState.Modified;
         }
     }
 }
