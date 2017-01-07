@@ -28,6 +28,8 @@ namespace huypq.SwaMiddleware
             public string ErrorMsg { get; set; }
             [ProtoBuf.ProtoMember(7)]
             public long ServerStartTime { get; set; }
+            [ProtoBuf.ProtoMember(8)]
+            public int PageSize { get; set; }
         }
 
         public class ChangeState
@@ -137,7 +139,6 @@ namespace huypq.SwaMiddleware
         protected PagingResultDto<DtoType> Get(QueryExpression filter, IQueryable<EntityType> includedQuery)
         {
             int pageCount = 1;
-            int pageIndex = 1;
             var query = includedQuery;
             var result = new PagingResultDto<DtoType>
             {
@@ -156,9 +157,12 @@ namespace huypq.SwaMiddleware
             if (filter != null && filter.PageIndex > 0)//paging
             {
                 var pageSize = GetPageSize();
+                if (filter.PageSize > pageSize)
+                {
+                    filter.PageSize = pageSize;
+                }
                 query = QueryExpression.AddQueryExpression(
-                query, filter, pageSize, out pageCount);
-                pageIndex = filter.PageIndex;
+                query, ref filter, out pageCount);
             }
             else//no paging
             {
@@ -179,7 +183,8 @@ namespace huypq.SwaMiddleware
                 }
             }
 
-            result.PageIndex = pageIndex;
+            result.PageIndex = filter.PageIndex;
+            result.PageSize = filter.PageSize;
             result.PageCount = pageCount;
 
             foreach (var entity in query)

@@ -7,7 +7,7 @@ namespace huypq.SwaMiddleware
     {
         private static readonly SwaSettings _instance = new SwaSettings()
         {
-            DefaultPageSize = 20,
+            DefaultPageSize = 50,
             MaxItemAllowed = 1000,
             JsonSerializer = new SwaNewtonJsonSerializer(),
             BinarySerializer = new SwaProtobufBinarySerializer()
