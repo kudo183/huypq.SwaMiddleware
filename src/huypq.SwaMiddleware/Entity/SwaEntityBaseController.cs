@@ -49,11 +49,33 @@ namespace huypq.SwaMiddleware
         }
         #endregion
 
-        private static long VersionNumber = 1;
+        private static object _versionNumberLock = new object();
 
-        public static void IncreaseVersionNumber()
+        private static Dictionary<int, long> VersionNumbers = new Dictionary<int, long>();
+
+        public static void IncreaseVersionNumber(int groupId)
         {
-            System.Threading.Interlocked.Increment(ref VersionNumber);
+            lock (_versionNumberLock)
+            {
+                long versionNumber;
+                if (VersionNumbers.TryGetValue(groupId, out versionNumber) == false)
+                {
+                    VersionNumbers.Add(groupId, 1);
+                }
+
+                VersionNumbers[groupId] = versionNumber + 1;
+            }
+        }
+
+        private long GetVersionNumber()
+        {
+            long versionNumber;
+            if (VersionNumbers.TryGetValue(TokenModel.GroupId, out versionNumber) == false)
+            {
+                return 0;
+            }
+
+            return versionNumber;
         }
 
         protected ContextType DBContext
@@ -72,7 +94,7 @@ namespace huypq.SwaMiddleware
                 var changeCount = DBContext.SaveChanges();
                 if (changeCount > 0)
                 {
-                    IncreaseVersionNumber();
+                    IncreaseVersionNumber(TokenModel.GroupId);
                 }
                 AfterSave();
             }
@@ -145,7 +167,7 @@ namespace huypq.SwaMiddleware
                 Items = new List<DtoType>()
             };
 
-            result.VersionNumber = VersionNumber;
+            result.VersionNumber = GetVersionNumber();
             result.ServerStartTime = SwaSettings.ServerStartTime;
 
             if (result.ServerStartTime == filter.ServerStartTime
