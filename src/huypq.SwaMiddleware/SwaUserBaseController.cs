@@ -72,11 +72,10 @@ namespace huypq.SwaMiddleware
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
-            var hasher = new huypq.Crypto.PasswordHash();
             var entity = new UserEntityType()
             {
                 Email = user,
-                PasswordHash = hasher.HashedBase64String(pass),
+                PasswordHash = Crypto.PasswordHash.HashedBase64String(pass),
                 CreateDate  = DateTime.UtcNow
             };
             DBContext.SwaUser.Add(entity);
@@ -107,12 +106,11 @@ namespace huypq.SwaMiddleware
             {
                 return CreateStatusResult(System.Net.HttpStatusCode.Conflict);
             }
-
-            var hasher = new huypq.Crypto.PasswordHash();
+            
             var entity = new UserEntityType()
             {
                 Email = user,
-                PasswordHash = hasher.HashedBase64String(pass),
+                PasswordHash = Crypto.PasswordHash.HashedBase64String(pass),
                 CreateDate = DateTime.UtcNow
             };
             DBContext.SwaUser.Add(entity);

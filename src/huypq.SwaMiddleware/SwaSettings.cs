@@ -27,6 +27,11 @@ namespace huypq.SwaMiddleware
         public int DefaultPageSize { get; set; }
 
         /// <summary>
+        /// Default order option
+        /// </summary>
+        public QueryBuilder.OrderByExpression.OrderOption DefaultOrderOption { get; set; }
+
+        /// <summary>
         /// Result paging size
         /// </summary>
         public int MaxItemAllowed { get; set; }

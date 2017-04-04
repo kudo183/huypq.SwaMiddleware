@@ -23,12 +23,8 @@ namespace huypq.SwaMiddleware
             [ProtoBuf.ProtoMember(4)]
             public List<T> Items { get; set; }
             [ProtoBuf.ProtoMember(5)]
-            public long VersionNumber { get; set; }
-            [ProtoBuf.ProtoMember(6)]
             public string ErrorMsg { get; set; }
-            [ProtoBuf.ProtoMember(7)]
-            public long ServerStartTime { get; set; }
-            [ProtoBuf.ProtoMember(8)]
+            [ProtoBuf.ProtoMember(6)]
             public int PageSize { get; set; }
         }
 
@@ -48,36 +44,7 @@ namespace huypq.SwaMiddleware
             public T Data { get; set; }
         }
         #endregion
-
-        private static object _versionNumberLock = new object();
-
-        private static Dictionary<int, long> VersionNumbers = new Dictionary<int, long>();
-
-        public static void IncreaseVersionNumber(int groupId)
-        {
-            lock (_versionNumberLock)
-            {
-                long versionNumber;
-                if (VersionNumbers.TryGetValue(groupId, out versionNumber) == false)
-                {
-                    VersionNumbers.Add(groupId, 1);
-                }
-
-                VersionNumbers[groupId] = versionNumber + 1;
-            }
-        }
-
-        private long GetVersionNumber()
-        {
-            long versionNumber;
-            if (VersionNumbers.TryGetValue(TokenModel.GroupId, out versionNumber) == false)
-            {
-                return 0;
-            }
-
-            return versionNumber;
-        }
-
+        
         protected ContextType DBContext
         {
             get
@@ -92,10 +59,6 @@ namespace huypq.SwaMiddleware
             try
             {
                 var changeCount = DBContext.SaveChanges();
-                if (changeCount > 0)
-                {
-                    IncreaseVersionNumber(TokenModel.GroupId);
-                }
                 AfterSave();
             }
             catch (Exception ex)
@@ -167,54 +130,49 @@ namespace huypq.SwaMiddleware
                 Items = new List<DtoType>()
             };
 
-            result.VersionNumber = GetVersionNumber();
-            result.ServerStartTime = SwaSettings.ServerStartTime;
+            var pageSize = GetPageSize();
 
-            if (result.ServerStartTime == filter.ServerStartTime
-                && result.VersionNumber == filter.VersionNumber)
+            if (filter != null)
             {
-                return result;
-            }
-
-            if (filter != null && filter.PageIndex > 0)//paging
-            {
-                var pageSize = GetPageSize();
-                if (filter.PageSize > pageSize)
+                if (filter.PageIndex > 0)
                 {
-                    filter.PageSize = pageSize;
+                    if (filter.PageSize > pageSize)
+                    {
+                        filter.PageSize = pageSize;
+                    }
+                    if (filter.OrderOptions.Count == 0)
+                    {
+                        filter.OrderOptions.Add(SwaSettings.Instance.DefaultOrderOption);
+                    }
+                    query = QueryExpression.AddQueryExpression(
+                    query, ref filter, out pageCount);
+
+                    result.PageIndex = filter.PageIndex;
+                    result.PageSize = filter.PageSize;
+                    result.PageCount = pageCount;
                 }
-                query = QueryExpression.AddQueryExpression(
-                query, ref filter, out pageCount);
-            }
-            else//no paging
-            {
-                if (filter != null)
+                else
                 {
                     query = WhereExpression.AddWhereExpression(query, filter.WhereOptions);
-                }
-
-                query = OrderByExpression.AddOrderByExpression(query, filter.OrderOptions);
-
-                var itemCount = query.Count();
-                var maxItem = GetMaxItemAllowed();
-
-                if (itemCount > maxItem)
-                {
-                    result.ErrorMsg = "Entity set too large, please use paging";
-                    return result;
+                    query = OrderByExpression.AddOrderByExpression(query, filter.OrderOptions);
                 }
             }
 
-            result.PageIndex = filter.PageIndex;
-            result.PageSize = filter.PageSize;
-            result.PageCount = pageCount;
+            var itemCount = query.Count();
+            var maxItem = GetMaxItemAllowed();
 
+            if (itemCount > maxItem)
+            {
+                result.ErrorMsg = "Entity set too large, please use paging";
+                return result;
+            }
+            
             foreach (var entity in query)
             {
                 result.Items.Add(ConvertToDto(entity));
             }
 
-            return result;
+            return result;            
         }
 
         protected virtual int GetMaxItemAllowed()
